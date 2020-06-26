@@ -1,7 +1,5 @@
 package main
 
-import "math/rand"
-
 type neuralNetwork struct {
 	layers    []layer
 	output    []float64
@@ -41,7 +39,7 @@ func initNN(numLayers int, layersSize []int) neuralNetwork {
 		for j := 0; j < layersSize[i]; j++ {
 			l.neurons = append(l.neurons, neuron{
 				weights: randomWeights(layersSize[i-1]),
-				bias:    (rand.Float64() * 2) - 1,
+				bias:    0.0,
 				output:  0.0,
 			})
 		}

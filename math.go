@@ -18,7 +18,7 @@ func dot(a1, a2 []float64) float64 {
 func randomWeights(size int) []float64 {
 	output := make([]float64, size)
 	for i := range output {
-		output[i] = (rand.Float64() * 2) - 1
+		output[i] = (rand.Float64() * 0.2) - 0.1
 	}
 	return output
 }

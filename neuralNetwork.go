@@ -13,9 +13,10 @@ type layer struct {
 	weights    matrix
 	newWeights matrix
 	bias       matrix
+	newBias    matrix
 	numNeurons int
-	input      matrix
-	output     matrix
+	inputs     matrix
+	outputs    matrix
 }
 
 func initNN(layersSize []int) neuralNetwork {
@@ -27,7 +28,6 @@ func initNN(layersSize []int) neuralNetwork {
 	}
 
 	il := layer{
-		output:     newMatrix(1, layersSize[0]),
 		numNeurons: layersSize[0],
 		bias:       randomMatrix(layersSize[0], 1, 0.0, 1.0),
 	}
@@ -45,63 +45,114 @@ func initNN(layersSize []int) neuralNetwork {
 	return nn
 }
 
-func (nn *neuralNetwork) train(input, target matrix) {
+func (nn *neuralNetwork) train(inputs, targets matrix) {
+	nn.run(inputs)
+	nn.layers[nn.numLayers-1].outputs.print()
 
-	nn.layers[0].output = input
-	for i := 1; i < nn.numLayers; i++ {
-		nn.layers[i].run(nn.layers[i-1].output)
+	// input of the last layer
+	z := nn.layers[nn.numLayers-1].inputs
+	// output of the last layer
+	a := nn.layers[nn.numLayers-1].outputs
+
+	err := subMatrix(a, targets)
+
+	ds := newMatrix(z.rows, z.cols)
+
+	for i, row := range z.data {
+		for j, data := range row.data {
+			ds.data[i].data[j] = derivativeSigmoid(data)
+		}
 	}
-	nn.output = nn.layers[nn.numLayers-1].output
 
-	// output layer
+	fmt.Println("==================")
+	err.print()
+	fmt.Println("==================")
+	ds.print()
+	fmt.Println("==================")
 
-	nn.layers[2].newWeights = newMatrix(nn.layers[2].weights.rows, nn.layers[2].weights.cols)
+	delta := multiplyMatrixElem(err, ds)
 
-	// fmt.Println("================================")
-	// fmt.Println(nn.layers[2].input.data[0].data[0])
-	// fmt.Println("================================")
+	nn.layers[nn.numLayers-1].newBias = delta
 
-	auxD_lastlayer_n0 := (target.data[0].data[0] - nn.output.data[0].data[0]) * (derivativeSigmoid(nn.layers[2].output.data[0].data[0]))
-	grad := auxD_lastlayer_n0 * nn.layers[1].output.data[0].data[0]
+	a = nn.layers[nn.numLayers-2].outputs
 
-	nn.layers[2].newWeights.data[0].data[0] = nn.layers[2].weights.data[0].data[0] + grad
+	nn.layers[nn.numLayers-1].newWeights = multiplyMatrix(a.transpose(), delta)
 
-	// hidden layer
+	for i := nn.numLayers - 2; i > 0; i-- {
+		z := nn.layers[i-1].inputs
 
-	nn.layers[1].newWeights = newMatrix(nn.layers[1].weights.rows, nn.layers[1].weights.cols)
+		ds := newMatrix(z.rows, z.cols)
 
-	auxD_hiddenlayer_n0 := (auxD_lastlayer_n0) * (nn.layers[2].weights.data[0].data[0]) * (derivativeSigmoid(nn.layers[1].output.data[0].data[0]))
-	grad = auxD_hiddenlayer_n0 * nn.layers[0].output.data[0].data[0]
+		for i, row := range z.data {
+			for j, data := range row.data {
+				ds.data[i].data[j] = derivativeSigmoid(data)
+			}
+		}
 
-	nn.layers[1].newWeights.data[0].data[0] = nn.layers[1].weights.data[0].data[0] + grad
+		wT := nn.layers[i-1].weights.transpose()
 
-	auxD_hiddenlayer_n1 := (auxD_lastlayer_n0) * (nn.layers[2].weights.data[0].data[0]) * (derivativeSigmoid(nn.layers[1].output.data[0].data[0]))
-	grad = auxD_hiddenlayer_n1 * nn.layers[0].output.data[1].data[0]
+		wDelta := multiplyMatrix(delta, wT)
 
-	nn.layers[1].newWeights.data[0].data[1] = nn.layers[1].weights.data[0].data[1] + grad
+		delta = multiplyMatrixElem(wDelta, ds)
 
-	nn.layers[2].weights = copyMatrix(nn.layers[2].newWeights)
+		nn.layers[i].newBias = delta
 
-	nn.layers[1].weights = copyMatrix(nn.layers[1].newWeights)
+		a = nn.layers[i-1].outputs
 
-	fmt.Println(nn.output.data[0].data[0] - target.data[0].data[0])
+		nn.layers[i-1].newWeights = multiplyMatrix(a.transpose(), delta)
+	}
+
+	N := inputs.rows
+
+	for i := 1; i < nn.numLayers; i++ {
+
+		alpha := 0.1 / float64(N)
+
+		w := nn.layers[i].weights
+
+		nw := nn.layers[i].newWeights
+
+		// b := nn.layers[i].bias
+		nbt := nn.layers[i].newBias.transpose()
+		nb := newMatrix(nbt.rows, 1)
+
+		for i, row := range nbt.data {
+			for _, data := range row.data {
+				nb.data[i].data[0] += data
+			}
+		}
+
+		for i, row := range nw.data {
+			for j, data := range row.data {
+				nw.data[i].data[j] = data * alpha
+			}
+		}
+
+		for i, row := range nb.data {
+			for j, data := range row.data {
+				nb.data[i].data[j] = data * alpha
+			}
+		}
+
+		nn.layers[i].weights = subMatrix(w, nw)
+	}
 }
 
-func (nn *neuralNetwork) run(input matrix) {
-	nn.layers[0].output = copyMatrix(input)
+func (nn *neuralNetwork) run(inputs matrix) {
+
+	nn.layers[0].outputs = copyMatrix(inputs)
 	for i := 1; i < nn.numLayers; i++ {
-		nn.layers[i].run(nn.layers[i-1].output)
+		nn.layers[i].run(nn.layers[i-1].outputs)
 	}
-	nn.output = nn.layers[nn.numLayers-1].output
 }
 
-func (layer *layer) run(input matrix) {
-	layer.output = multiplyMatrix(layer.weights, input)
-	layer.input = copyMatrix(layer.output)
+func (layer *layer) run(inputs matrix) {
+	layer.outputs = multiplyMatrix(layer.weights, inputs)
+	layer.inputs = copyMatrix(layer.outputs)
 
-	for i := 0; i < len(layer.output.data); i++ {
-		for j := 0; j < len(layer.output.data[i].data); j++ {
-			layer.output.data[i].data[j] = sigmoid(layer.output.data[i].data[j])
+	for i := 0; i < len(layer.outputs.data); i++ {
+		for j := 0; j < len(layer.outputs.data[i].data); j++ {
+			layer.outputs.data[i].data[j] = sigmoid(layer.outputs.data[i].data[j])
 		}
 	}
 }

@@ -51,6 +51,16 @@ func multiplyMatrix(m1, m2 matrix) matrix {
 	return output
 }
 
+func multiplyMatrixElem(m1, m2 matrix) matrix {
+	output := newMatrix(m1.rows, m2.cols)
+	for x := 0; x < output.rows; x++ {
+		for y := 0; y < output.cols; y++ {
+			output.data[x].data[y] = m1.data[x].data[y] * m2.data[x].data[y]
+		}
+	}
+	return output
+}
+
 func (m1 *matrix) transpose() matrix {
 	output := newMatrix(m1.cols, m1.rows)
 	for x := 0; x < output.rows; x++ {

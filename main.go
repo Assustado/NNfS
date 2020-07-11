@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -29,71 +28,33 @@ func main() {
 
 	now := time.Now()
 	rand.Seed(now.Unix())
-	nn := initNN([]int{2, 2, 2})
+	nn := initNN([]int{2, 1, 2})
 	nn.print()
 
-	inputs := []matrix{}
-	targets := []matrix{}
+	inputs := newMatrix(2, 4)
+	targets := newMatrix(2, 4)
 
-	input1 := newMatrix(2, 1)
-	input1.data[0].data[0] = 1
-	input1.data[1].data[0] = 1
-	target1 := newMatrix(2, 1)
-	target1.data[0].data[0] = 1
-	target1.data[1].data[0] = 0
+	inputs.data[0].data[0] = 1
+	inputs.data[1].data[0] = 1
+	targets.data[0].data[0] = 1
+	targets.data[1].data[0] = 0
 
-	input2 := newMatrix(2, 1)
-	input2.data[0].data[0] = 0
-	input2.data[1].data[0] = 0
-	target2 := newMatrix(2, 1)
-	target2.data[0].data[0] = 1
-	target2.data[1].data[0] = 0
+	inputs.data[0].data[1] = 0
+	inputs.data[1].data[1] = 0
+	targets.data[0].data[1] = 1
+	targets.data[1].data[1] = 0
 
-	input3 := newMatrix(2, 1)
-	input3.data[0].data[0] = 0
-	input3.data[1].data[0] = 1
-	target3 := newMatrix(2, 1)
-	target3.data[0].data[0] = 0
-	target3.data[1].data[0] = 1
+	inputs.data[0].data[2] = 0
+	inputs.data[1].data[2] = 1
+	targets.data[0].data[2] = 0
+	targets.data[1].data[2] = 1
 
-	input4 := newMatrix(2, 1)
-	input4.data[0].data[0] = 1
-	input4.data[1].data[0] = 0
-	target4 := newMatrix(2, 1)
-	target4.data[0].data[0] = 1
+	inputs.data[0].data[3] = 1
+	inputs.data[1].data[3] = 0
+	targets.data[0].data[3] = 1
+	targets.data[1].data[3] = 1
 
-	inputs = append(inputs, input1)
-	inputs = append(inputs, input2)
-	inputs = append(inputs, input3)
-	inputs = append(inputs, input4)
-
-	targets = append(targets, target1)
-	targets = append(targets, target2)
-	targets = append(targets, target3)
-	targets = append(targets, target4)
-
-	for i := 0; i < 1000; i++ {
-		trainData := rand.Int() % 1
-		// fmt.Println(trainData)
-		nn.train(inputs[trainData], targets[trainData])
-		// nn.print()
+	for i := 0; i < 1; i++ {
+		nn.train(inputs, targets)
 	}
-	nn.print()
-
-	fmt.Println()
-	nn.run(input1)
-	nn.output.print()
-
-	fmt.Println()
-	nn.run(input2)
-	nn.output.print()
-
-	fmt.Println()
-	nn.run(input3)
-	nn.output.print()
-
-	fmt.Println()
-	nn.run(input4)
-	nn.output.print()
-
 }
